@@ -1,0 +1,48 @@
+{
+  "name": "super-adventure",
+  "version": "1.0.0",
+  "description": "Super Adventure - Professional 2D Platformer Desktop Game",
+  "main": "electron/main.js",
+  "author": "Antigravity Games",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "game",
+    "platformer",
+    "phaser3",
+    "electron"
+  ],
+  "dependencies": {
+    "phaser": "^3.88.2"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.antigravity.superadventure",
+    "productName": "Super Adventure",
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "node_modules/phaser/dist/phaser.min.js"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Super Adventure"
+    }
+  }
+}
