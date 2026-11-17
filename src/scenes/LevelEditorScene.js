@@ -36,7 +36,12 @@ export class LevelEditorScene extends Phaser.Scene {
   }
 
   create() {
+    const log = (msg) => console.log('[LevelEditor] ' + msg);
     try {
+      // Initialize audio for this scene
+      audioManager.init(this);
+
+      log('Starting initialization');
       this.gridSize = 32;
       this.levelWidth = 3200;
       this.levelHeight = 900;
@@ -49,27 +54,59 @@ export class LevelEditorScene extends Phaser.Scene {
       // Reference panels for live-updating UI
       this.propPanel = {};
 
+      // Background container (must exist before applyTheme is called)
+      this.bgGroup = this.add.container();
+      log('Created bgGroup');
+
+      // Separate container for cloud layer (survives re-renders)
+      this.cloudGroup = this.add.container();
+      log('Created cloudGroup');
+
       // Load initial template or saved custom level
       this.loadCustomOrTemplate();
+      log('Loaded config theme=' + (this.currentLevelConfig?.theme || 'none'));
+
+      // Ensure all arrays exist
+      const cfg = this.currentLevelConfig;
+      ['platforms', 'spikes', 'enemies', 'collectibles', 'specialPlatforms', 'movingPlatforms'].forEach(k => {
+        if (!Array.isArray(cfg[k])) cfg[k] = [];
+      });
+      if (!cfg.spawn) cfg.spawn = { x: 120, y: 700 };
+      if (!cfg.exit) cfg.exit = { x: 3000, y: 700 };
+      if (!cfg.checkpoint) cfg.checkpoint = { x: 1500, y: 720 };
 
       // Setup world & camera
       this.setupWorldAndCamera();
+      log('Setup world & camera done');
 
       // Render grid
       this.renderGrid();
+      log('Rendered grid');
 
       // Render initial objects
       this.renderAllObjects();
+      log('Rendered all objects');
 
       // Setup interaction listeners
       this.setupEditorControls();
+      log('Setup editor controls');
 
       // Build HUD & Toolbar UI (Fixed to screen)
       this.buildToolbarUI();
+      log('Built toolbar UI');
       this.buildPropertiesPanel();
+      log('Built properties panel - SCENE READY');
     } catch (e) {
       console.error('LevelEditorScene.create() failed:', e);
-      this.scene.start('MenuScene');
+      // Show error on screen so user can see it
+      const errText = 'ERROR: ' + (e.message || String(e));
+      this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width - 100, 60, 0xff0000, 0.8)
+        .setScrollFactor(0).setDepth(999);
+      this.add.text(this.scale.width / 2, this.scale.height / 2, errText, {
+        fontFamily: 'Segoe UI, sans-serif', fontSize: '16px', color: '#ffffff',
+        align: 'center', wordWrap: { width: this.scale.width - 120 }
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(999);
+      this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
   }
 
@@ -133,7 +170,7 @@ export class LevelEditorScene extends Phaser.Scene {
           .setAlpha(0.6)
           .setScrollFactor(0.4)
           .setDepth(-8);
-        this.placedObjects.push(cloud);
+        this.cloudGroup.add(cloud);
       }
     }
   }
@@ -180,9 +217,11 @@ export class LevelEditorScene extends Phaser.Scene {
     const cfg = this.currentLevelConfig;
 
     // 1. Platforms
-    cfg.platforms.forEach((p, idx) => {
-      this.renderPlatformItem(p, idx);
-    });
+    if (cfg.platforms && cfg.platforms.length > 0) {
+      cfg.platforms.forEach((p, idx) => {
+        this.renderPlatformItem(p, idx);
+      });
+    }
 
     // 2. Spawn
     if (cfg.spawn) {
@@ -677,6 +716,8 @@ export class LevelEditorScene extends Phaser.Scene {
     this.renderAllObjects();
     audioManager.playSfx('sfx_bump');
     this.updatePropCounts();
+    // Re-apply default theme so tilePrefix/bgKey stay in sync
+    this.applyTheme('forest');
   }
 
   exitToMenu() {
